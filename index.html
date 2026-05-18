@@ -498,6 +498,8 @@ function ImportCSVDrawer({ onImport, onClose }) {
     setChecked(next);
   };
 
+  const updRow = (id, field, val) => setRows(rs => rs.map(r => r.id === id ? {...r, [field]: val} : r));
+
   const doImport = () => {
     const sel = rows.filter(r => checked[r.id]);
     if (!sel.length) { setErr('Selecione pelo menos um lançamento.'); return; }
@@ -535,16 +537,27 @@ function ImportCSVDrawer({ onImport, onClose }) {
                 React.createElement('button', { onClick:toggleAll, style:{ background:'var(--s2)', border:'1px solid var(--border)', color:'var(--acc)', borderRadius:6, padding:'4px 10px', fontSize:12, fontWeight:700 } }, rows.every(r=>checked[r.id]) ? 'Desmarcar todos' : 'Marcar todos')
               ),
               // Rows
-              rows.map(r =>
-                React.createElement('div', { key:r.id, onClick:()=>setChecked(c=>({...c,[r.id]:!c[r.id]})), style:{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:8, marginBottom:4, cursor:'pointer', border:'1px solid ' + (checked[r.id] ? 'var(--acc-b)' : 'var(--border)'), background: checked[r.id] ? 'var(--acc2)' : 'transparent', transition:'all .15s' } },
-                  React.createElement('div', { style:{ width:16, height:16, borderRadius:4, border:'2px solid ' + (checked[r.id] ? 'var(--acc)' : 'var(--muted)'), background: checked[r.id] ? 'var(--acc)' : 'transparent', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#fff' } }, checked[r.id] ? '✓' : ''),
-                  React.createElement('div', { style:{ flex:1, minWidth:0 } },
-                    React.createElement('div', { style:{ fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } }, r.label),
-                    React.createElement('div', { style:{ fontSize:11, color:'var(--muted)', marginTop:2 } }, catLabel(r.cat) + (r.date ? '  ·  ' + r.date : ''))
+              rows.map(r => {
+                const cat = CATS.find(c => c.id === r.cat) || CATS[8];
+                return React.createElement('div', { key:r.id, style:{ borderRadius:8, marginBottom:6, border:'1px solid ' + (checked[r.id] ? 'var(--acc-b)' : 'var(--border)'), background: checked[r.id] ? 'var(--acc2)' : 'var(--s2)', transition:'all .15s', overflow:'hidden' } },
+                  // Row header — click toggles checkbox
+                  React.createElement('div', { onClick:()=>setChecked(c=>({...c,[r.id]:!c[r.id]})), style:{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', cursor:'pointer' } },
+                    React.createElement('div', { style:{ width:16, height:16, borderRadius:4, border:'2px solid ' + (checked[r.id] ? 'var(--acc)' : 'var(--muted)'), background: checked[r.id] ? 'var(--acc)' : 'transparent', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#fff' } }, checked[r.id] ? '✓' : ''),
+                    React.createElement('div', { style:{ fontSize:18, flexShrink:0 } }, cat.icon),
+                    React.createElement('div', { style:{ flex:1, minWidth:0 } },
+                      React.createElement('div', { style:{ fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } }, r.label),
+                      r.date && React.createElement('div', { style:{ fontSize:10, color:'var(--muted)', marginTop:1 } }, r.date)
+                    ),
+                    React.createElement('span', { style:{ fontWeight:700, color:'var(--red)', flexShrink:0, fontSize:13 } }, R(parseFloat(r.value)))
                   ),
-                  React.createElement('span', { style:{ fontWeight:700, color:'var(--red)', flexShrink:0, fontSize:13 } }, R(parseFloat(r.value)))
-                )
-              ),
+                  // Category selector row
+                  React.createElement('div', { style:{ display:'flex', gap:6, padding:'0 12px 9px', flexWrap:'wrap' }, onClick:e=>e.stopPropagation() },
+                    CATS.map(c =>
+                      React.createElement('button', { key:c.id, onClick:()=>updRow(r.id,'cat',c.id), style:{ padding:'3px 8px', borderRadius:20, border:'1px solid ' + (r.cat===c.id ? 'var(--acc-b)' : 'var(--border)'), background: r.cat===c.id ? 'var(--acc2)' : 'transparent', color: r.cat===c.id ? 'var(--acc)' : 'var(--muted)', fontSize:11, fontWeight:600, cursor:'pointer', transition:'all .12s' } }, c.icon + ' ' + c.label)
+                    )
+                  )
+                );
+              }),
               err && React.createElement('div', { style:{ marginTop:8, color:'var(--red)', fontSize:12 } }, err)
             )
       ),
