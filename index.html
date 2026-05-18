@@ -89,14 +89,14 @@ const MONTHS_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 const today = new Date();
 
 const CATS = [
-  {id:'moradia',    icon:'🏠',label:'Moradia',    kw:['aluguel','condomin','iptu','financiamento','luz eletrica','energia elet','copel','cemig','coelba','celpe','enel','sabesp','sanepar','cedae','agua e esgoto','agua ','internet','vivo fibra','claro resid','tim resid','oi fibra','gás','gas encanado','gas natural','comgas','serv resid']},
-  {id:'alimentacao',icon:'🍔',label:'Alimentação', kw:['ifood','rappi','uber eats','james','mercado','supermercado','hipermercado','atacado','carrefour','extra ','walmart','assai','atacadao','pao de acucar','dia ','sonda','condor','bistek','padaria','confeitaria','panificadora','restaurante','lanchonete','lanche','hamburguer','pizza','sushi','porcao','self service','refeicao','delivery','snack','fast food','mcdonalds','burger king','subway','dominos','bob s','bobs ','giraffas','habibs','china']},
-  {id:'transporte', icon:'🚗',label:'Transporte',  kw:['uber','99 ','noventa e nove','cabify','indriver','taxi','combustivel','gasolina','etanol','diesel','posto ','shell ','ipiranga ','br avia','ale ','raizen','bilhete unico','onibus','metro ','trem ','barca ','vlt ','estacionamento','parking','autopark','pedágio','pedagio','autoban','ccr ','ecovias','argo ','sem parar','veloe','autopass','detran','ipva','multa transit','denatran','renavam','carro','moto ','veiculo','consorcio auto']},
-  {id:'saude',      icon:'💊',label:'Saúde',       kw:['farmacia','drogaria','ultrafarma','pacheco','nissei','droga','remedios','medicamento','clinica','hospital','laboratorio','exame ','consulta','medico','dentista','odonto','ortodontia','plano de saude','unimed','amil','hapvida','notredame','sulamerica saude','bradesco saude','porto saude','academia','smartfit','bluefit','bodytech','totalpass','wellhub','gympass','fisioterapia','psicologo','psiquiatra','nutricionist','vacina','optica','oculos']},
-  {id:'educacao',   icon:'🎓',label:'Educação',    kw:['faculdade','universidade','escola','colegio','curso','mensalidade escolar','matricula','vestibular','enem','udemy','alura','coursera','hotmart','eduzz','kiwify','livro ','livraria','amazon livros','saraiva','cultura livro','papelaria','material escolar','lingua','ingles','espanhol','idioma','wizard','ccaa','wise up']},
-  {id:'lazer',      icon:'🎬',label:'Lazer',       kw:['cinema','teatro','show ','festival','ingresso','ticketmaster','bilheteria','sympla','eventbrite','viagem','hotel','pousada','hostel','airbnb','booking','decolar','123milhas','latam','gol ','azul ','voeazul','tam ','passagem','rodoviaria','parque','zoologico','museu','aquario','bowling','karting','bar ','balada','night','boate','happy hour','jogo ','arena ','estadio','futebol']},
-  {id:'assinaturas',icon:'📱',label:'Assinaturas', kw:['netflix','spotify','deezer','amazon prime','disney+','hbo max','max ','apple one','apple tv','globoplay','paramount','crunchyroll','funimation','mubi','telecine','claro video','youtube premium','google one','icloud','dropbox','office 365','microsoft 365','adobe','canva','notion','figma','chatgpt','openai','anthr','github','heroku','aws ','azure ','google cloud','digital ocean','hostinger','locaweb','assinatura','subscription','plano mensal','plano anual']},
-  {id:'dividas',    icon:'💳',label:'Dívidas',     kw:['cartao ','fatura','parcela','emprestimo','financiamento','credito','debito automatico','cdc ','consignado','cet ','juros','multa ','encargo','serasa','spc ','banco ','bradesco','itau','santander','caixa ','bb ','nubank ','inter ','c6 ','neon ','next ','original ','pan ','pagbank','picpay','mercado pago','fgts','inss ']},
+  {id:'moradia',    icon:'🏠',label:'Moradia',    kw:['aluguel','condomin','iptu','luz eletrica','energia elet','copel','cemig','coelba','celpe','enel','sabesp','sanepar','cedae','agua e esgoto','internet fibra','vivo fibra','claro resi','tim resi','oi fibra','gas encanado','gas natural','comgas','serv resid','manutencao imovel','seguro imovel']},
+  {id:'alimentacao',icon:'🍔',label:'Alimentação', kw:['ifood','rappi','uber eats','james delivery','mercadao','mercado livre','mercado pago compra','supermercado','hipermercado','atacado','carrefour','extra ','walmart','assai','atacadao','pao de acucar','bistek','padaria','confeitaria','panificadora','restaurante','lanchonete','lanche','hamburguer','pizza','sushi','delivery','snack','mcdonalds','burger king','subway','dominos','bobs ','giraffas','habibs','churrascaria','pizzaria']},
+  {id:'transporte', icon:'🚗',label:'Transporte',  kw:['uber','99app','99 taxi','99pop','cabify','indriver','taxi','combustivel','gasolina','etanol','diesel','posto ','shell ','ipiranga','raizen','bilhete unico','onibus','metro ','trem ','barca ','vlt ','estacionamento','autopark','pedagio','autoban','ccr ','ecovias','sem parar','veloe','autopass','detran','ipva','denatran','renavam','consorcio auto','latam','gol viag','gol linhas','azul linhas','azul viag','voeazul','tam viag','passagem aerea','compra passagem','rodoviaria','aeroporto','mototaxi']},
+  {id:'saude',      icon:'💊',label:'Saúde',       kw:['farmacia','drogaria','drogasil','pacheco','nissei','ultrafarma','panvel','droga raia','remedios','medicamento','clinica','hospital','laboratorio','exame ','consulta med','medico','dentista','odonto','ortodontia','plano de saude','unimed','amil','hapvida','notredame','sulamerica saude','bradesco saude','porto saude','smartfit','bluefit','bodytech','totalpass','wellhub','gympass','academia ','fisioterapia','psicologo','psiquiatra','nutricionist','vacina','optica','oculos']},
+  {id:'educacao',   icon:'🎓',label:'Educação',    kw:['faculdade','universidade','escola ','colegio','mensalidade escolar','matricula','vestibular','enem','udemy','alura','coursera','hotmart','eduzz','kiwify','livraria','saraiva','cultura livro','papelaria','material escolar','ingles','espanhol','idioma','wizard','ccaa','wise up','curso online','aula particular']},
+  {id:'lazer',      icon:'🎬',label:'Lazer',       kw:['cinema','teatro','show ao vivo','festival','ingresso','ticketmaster','bilheteria','sympla','eventbrite','hotel ','pousada','hostel','airbnb','booking.com','decolar','hospedagem','parque ','zoologico','museu','aquario','bowling','karting','balada','boate','jogo ','arena ','estadio','futebol clube','clube de lazer']},
+  {id:'assinaturas',icon:'📱',label:'Assinaturas', kw:['netflix','spotify','deezer','amazon prime','disney','hbo max','max assinatura','apple tv','globoplay','paramount','crunchyroll','telecine','youtube premium','google one','icloud','dropbox','office 365','microsoft 365','adobe','canva pro','notion','chatgpt','openai','github','aws ','azure ','google cloud','digital ocean','hostinger','locaweb','assinatura','subscription','plano mensal','plano anual']},
+  {id:'dividas',    icon:'💳',label:'Dívidas',     kw:['fatura cartao','parcela ','emprestimo','financiamento veiculo','credito pessoal','debito automatico','consignado','juros ','encargo','serasa','spc ','bradesco','itau','santander','caixa econ','banco do brasil','nubank','banco inter','c6 bank','neon','next bank','pagbank','picpay','mercado pago','fgts','inss ']},
   {id:'outros',     icon:'📦',label:'Outros',      kw:[]},
 ];
 
@@ -453,33 +453,68 @@ function ImportCSVDrawer({ onImport, onClose }) {
   const [loading, setLoading] = useState(false);
   const fileRef               = useRef(null);
 
+  const splitLine = l => {
+    const out = []; let cur = '', inQ = false;
+    for (const ch of l) {
+      if (ch === '"') { inQ = !inQ; }
+      else if ((ch === ',' || ch === ';') && !inQ) { out.push(cur.trim().replace(/^"|"$/g,'')); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur.trim().replace(/^"|"$/g,''));
+    return out;
+  };
+
   const parseCSV = text => {
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (!lines.length) return [];
-    const splitLine = l => {
-      const out = []; let cur = '', inQ = false;
-      for (const ch of l) {
-        if (ch === '"') { inQ = !inQ; }
-        else if ((ch === ',' || ch === ';') && !inQ) { out.push(cur.trim()); cur = ''; }
-        else cur += ch;
-      }
-      out.push(cur.trim());
-      return out;
-    };
+    const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    if (lines.length < 2) return [];
     const raw = lines.map(splitLine);
-    const header = raw[0].map(h => norm(h.replace(/['"]/g,'')));
-    const idx = (kws) => header.findIndex(h => kws.some(k => h.includes(norm(k))));
-    const dateI = idx(['data','date','dt','vencimento','competencia']);
-    const descI = idx(['descricao','descr','historico','hist','memo','narr','lancamento','estabelecimento','favorecido','beneficiario','nome','titulo','detalhe','informacao','complemento','observacao']);
-    const valI  = idx(['valor','value','amount','debito','debit','credito','credit','montante','quantia','total','vlr']);
-    if (valI < 0) { setErr('Coluna de valor não encontrada. Certifique que o CSV tem coluna de valor/amount.'); return []; }
+    const ncols = raw[0].length;
+    if (ncols < 2) return [];
+
+    // Normalize header for matching
+    const header = raw[0].map(h => norm(h));
+
+    const idx = (...kws) => header.findIndex(h => kws.some(k => h.includes(norm(k))));
+
+    // Find description column — broadest possible set of names
+    let descI = idx('descricao','historico','lancamento','estabelecimento',
+                     'favorecido','beneficiario','nome transacao','memo',
+                     'detalhe','complemento','observacao','narrat','particip',
+                     'comercio','empresa','titulo');
+
+    // Fallback: biggest average text length column (most likely the description)
+    if (descI < 0) {
+      const avgs = Array.from({length:ncols},(_,ci)=>{
+        const vals = raw.slice(1).map(r=>(r[ci]||'').replace(/\d/g,'').trim().length);
+        return vals.reduce((s,v)=>s+v,0)/(vals.length||1);
+      });
+      descI = avgs.indexOf(Math.max(...avgs));
+    }
+
+    // Find value column
+    let valI = idx('valor','value','amount','debito','debit','credito','credit','montante','vlr','quantia','total');
+    // Fallback: find first column that looks numeric across most rows
+    if (valI < 0) {
+      for (let ci=0; ci<ncols; ci++) {
+        const numCount = raw.slice(1).filter(r => {
+          const v = (r[ci]||'').replace(/[R$\s.]/g,'').replace(',','.');
+          return !isNaN(parseFloat(v)) && parseFloat(v) > 0;
+        }).length;
+        if (numCount > raw.length * 0.5) { valI = ci; break; }
+      }
+    }
+    if (valI < 0) { setErr('Não encontrei coluna de valor. Verifique se o arquivo é um extrato válido.'); return []; }
+
+    // Find date column
+    const dateI = idx('data','date','dt','vencimento','competencia','periodo');
+
     return raw.slice(1).map((cols, i) => {
-      const rawVal = (cols[valI] || '').replace(/[R$\s]/g,'').replace(',','.');
+      const rawVal = (cols[valI] || '').replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
       const val = Math.abs(parseFloat(rawVal) || 0);
-      const desc = descI >= 0 ? (cols[descI] || '').replace(/^["']|["']$/g,'') : 'Importado';
-      const date = dateI >= 0 ? cols[dateI] : '';
-      return { id: uid(), label: desc || 'Item ' + (i+1), value: String(val), cat: detectCat(desc), date };
-    }).filter(r => r.value !== '0' && r.value !== 'NaN' && parseFloat(r.value) > 0);
+      const desc = ((cols[descI] || '').trim()) || ('Item ' + (i+1));
+      const date = dateI >= 0 ? (cols[dateI]||'').trim() : '';
+      return { id: uid(), label: desc, value: String(val), cat: detectCat(desc), date };
+    }).filter(r => parseFloat(r.value) > 0);
   };
 
   const handleFile = e => {
@@ -487,17 +522,24 @@ function ImportCSVDrawer({ onImport, onClose }) {
     const file = e.target.files[0];
     if (!file) return;
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const parsed = parseCSV(ev.target.result);
-      if (!parsed.length) { setErr(err || 'Nenhuma linha válida encontrada.'); setLoading(false); return; }
-      setRows(parsed);
-      const all = {};
-      parsed.forEach(r => { all[r.id] = true; });
-      setChecked(all);
-      setLoading(false);
+
+    // Try UTF-8 first; if header detection fails, retry with latin1 (ISO-8859-1)
+    const tryParse = (encoding, onFail) => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const parsed = parseCSV(ev.target.result);
+        if (!parsed.length && onFail) { onFail(); return; }
+        if (!parsed.length) { setErr('Nenhuma linha com valor encontrada. Verifique o arquivo.'); setLoading(false); return; }
+        setRows(parsed);
+        const all = {};
+        parsed.forEach(r => { all[r.id] = true; });
+        setChecked(all);
+        setLoading(false);
+      };
+      reader.readAsText(file, encoding);
     };
-    reader.readAsText(file, 'UTF-8');
+
+    tryParse('UTF-8', () => tryParse('ISO-8859-1', null));
   };
 
   const toggleAll = () => {
