@@ -89,19 +89,28 @@ const MONTHS_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 const today = new Date();
 
 const CATS = [
-  {id:'moradia',    icon:'🏠',label:'Moradia',    kw:['aluguel','condomínio','iptu','financiamento','luz','água','internet','gás']},
-  {id:'alimentacao',icon:'🍔',label:'Alimentação', kw:['ifood','rappi','mercado','supermercado','padaria','restaurante','lanche','delivery']},
-  {id:'transporte', icon:'🚗',label:'Transporte',  kw:['uber','99','combustível','gasolina','ônibus','metrô','estacionamento','carro']},
-  {id:'saude',      icon:'💊',label:'Saúde',       kw:['farmácia','remédio','médico','consulta','exame','plano','academia','dentista']},
-  {id:'educacao',   icon:'🎓',label:'Educação',    kw:['faculdade','curso','escola','livro','udemy','alura','mensalidade']},
-  {id:'lazer',      icon:'🎬',label:'Lazer',       kw:['cinema','teatro','viagem','hotel','passeio','bar','festa','show']},
-  {id:'assinaturas',icon:'📱',label:'Assinaturas', kw:['netflix','spotify','amazon','disney','youtube','apple','globo','prime']},
-  {id:'dividas',    icon:'💳',label:'Dívidas',     kw:['cartão','parcela','empréstimo','financiamento','crédito','banco']},
+  {id:'moradia',    icon:'🏠',label:'Moradia',    kw:['aluguel','condomin','iptu','financiamento','luz eletrica','energia elet','copel','cemig','coelba','celpe','enel','sabesp','sanepar','cedae','agua e esgoto','agua ','internet','vivo fibra','claro resid','tim resid','oi fibra','gás','gas encanado','gas natural','comgas','serv resid']},
+  {id:'alimentacao',icon:'🍔',label:'Alimentação', kw:['ifood','rappi','uber eats','james','mercado','supermercado','hipermercado','atacado','carrefour','extra ','walmart','assai','atacadao','pao de acucar','dia ','sonda','condor','bistek','padaria','confeitaria','panificadora','restaurante','lanchonete','lanche','hamburguer','pizza','sushi','porcao','self service','refeicao','delivery','snack','fast food','mcdonalds','burger king','subway','dominos','bob s','bobs ','giraffas','habibs','china']},
+  {id:'transporte', icon:'🚗',label:'Transporte',  kw:['uber','99 ','noventa e nove','cabify','indriver','taxi','combustivel','gasolina','etanol','diesel','posto ','shell ','ipiranga ','br avia','ale ','raizen','bilhete unico','onibus','metro ','trem ','barca ','vlt ','estacionamento','parking','autopark','pedágio','pedagio','autoban','ccr ','ecovias','argo ','sem parar','veloe','autopass','detran','ipva','multa transit','denatran','renavam','carro','moto ','veiculo','consorcio auto']},
+  {id:'saude',      icon:'💊',label:'Saúde',       kw:['farmacia','drogaria','ultrafarma','pacheco','nissei','droga','remedios','medicamento','clinica','hospital','laboratorio','exame ','consulta','medico','dentista','odonto','ortodontia','plano de saude','unimed','amil','hapvida','notredame','sulamerica saude','bradesco saude','porto saude','academia','smartfit','bluefit','bodytech','totalpass','wellhub','gympass','fisioterapia','psicologo','psiquiatra','nutricionist','vacina','optica','oculos']},
+  {id:'educacao',   icon:'🎓',label:'Educação',    kw:['faculdade','universidade','escola','colegio','curso','mensalidade escolar','matricula','vestibular','enem','udemy','alura','coursera','hotmart','eduzz','kiwify','livro ','livraria','amazon livros','saraiva','cultura livro','papelaria','material escolar','lingua','ingles','espanhol','idioma','wizard','ccaa','wise up']},
+  {id:'lazer',      icon:'🎬',label:'Lazer',       kw:['cinema','teatro','show ','festival','ingresso','ticketmaster','bilheteria','sympla','eventbrite','viagem','hotel','pousada','hostel','airbnb','booking','decolar','123milhas','latam','gol ','azul ','voeazul','tam ','passagem','rodoviaria','parque','zoologico','museu','aquario','bowling','karting','bar ','balada','night','boate','happy hour','jogo ','arena ','estadio','futebol']},
+  {id:'assinaturas',icon:'📱',label:'Assinaturas', kw:['netflix','spotify','deezer','amazon prime','disney+','hbo max','max ','apple one','apple tv','globoplay','paramount','crunchyroll','funimation','mubi','telecine','claro video','youtube premium','google one','icloud','dropbox','office 365','microsoft 365','adobe','canva','notion','figma','chatgpt','openai','anthr','github','heroku','aws ','azure ','google cloud','digital ocean','hostinger','locaweb','assinatura','subscription','plano mensal','plano anual']},
+  {id:'dividas',    icon:'💳',label:'Dívidas',     kw:['cartao ','fatura','parcela','emprestimo','financiamento','credito','debito automatico','cdc ','consignado','cet ','juros','multa ','encargo','serasa','spc ','banco ','bradesco','itau','santander','caixa ','bb ','nubank ','inter ','c6 ','neon ','next ','original ','pan ','pagbank','picpay','mercado pago','fgts','inss ']},
   {id:'outros',     icon:'📦',label:'Outros',      kw:[]},
 ];
+
+// Normaliza string: minúsculas + remove acentos para comparação
+function norm(s) {
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ');
+}
 function detectCat(lbl) {
-  const l=(lbl||'').toLowerCase();
-  for(const c of CATS){if(c.kw.some(k=>l.includes(k)))return c.id;}
+  const l = norm(lbl);
+  for (const c of CATS) {
+    if (c.kw.some(k => l.includes(norm(k)))) return c.id;
+  }
   return 'outros';
 }
 
@@ -458,11 +467,11 @@ function ImportCSVDrawer({ onImport, onClose }) {
       return out;
     };
     const raw = lines.map(splitLine);
-    const header = raw[0].map(h => h.toLowerCase().replace(/['"]/g,''));
-    const idx = (kws) => header.findIndex(h => kws.some(k => h.includes(k)));
-    const dateI = idx(['data','date','dt']);
-    const descI = idx(['desc','hist','memo','narr','lançamento','lancamento','nome','titulo']);
-    const valI  = idx(['valor','value','amount','debito','debíto','debit','crédito','credito','montante']);
+    const header = raw[0].map(h => norm(h.replace(/['"]/g,'')));
+    const idx = (kws) => header.findIndex(h => kws.some(k => h.includes(norm(k))));
+    const dateI = idx(['data','date','dt','vencimento','competencia']);
+    const descI = idx(['descricao','descr','historico','hist','memo','narr','lancamento','estabelecimento','favorecido','beneficiario','nome','titulo','detalhe','informacao','complemento','observacao']);
+    const valI  = idx(['valor','value','amount','debito','debit','credito','credit','montante','quantia','total','vlr']);
     if (valI < 0) { setErr('Coluna de valor não encontrada. Certifique que o CSV tem coluna de valor/amount.'); return []; }
     return raw.slice(1).map((cols, i) => {
       const rawVal = (cols[valI] || '').replace(/[R$\s]/g,'').replace(',','.');
