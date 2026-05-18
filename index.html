@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovra Premium — Experiência financeira avançada</title>
+<style>
+:root {
+  --bg:#080c14; --s1:#0f1520; --s2:#161e2e; --s3:#1d2840;
+  --acc:#818cf8; --acc2:rgba(129,140,248,.1); --acc-b:rgba(129,140,248,.28);
+  --green:#10b981; --green2:rgba(16,185,129,.08); --green-b:rgba(16,185,129,.25);
+  --red:#f87171;   --red2:rgba(248,113,113,.08);  --red-b:rgba(248,113,113,.25);
+  --gold:#f59e0b;  --gold2:rgba(245,158,11,.08);  --gold-b:rgba(245,158,11,.25);
+  --blue:#38bdf8;  --blue2:rgba(56,189,248,.08);  --blue-b:rgba(56,189,248,.25);
+  --txt:#e2e8f0; --muted:#64748b; --border:#1a2540; --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+input,select{background:var(--s3);border:1px solid var(--border);color:var(--txt);border-radius:6px;padding:7px 10px;font-size:13px;outline:none;transition:border .15s;width:100%}
+input:focus,select:focus{border-color:var(--acc)}
+button{cursor:pointer}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.top-bar{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:12px;flex-wrap:wrap}
+.tabs-wrap{background:var(--s1);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto}
+.tabs{display:flex;gap:2px;padding:8px 0;white-space:nowrap}
+.tab{padding:7px 16px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:transparent;transition:.15s}
+.tab.active{background:var(--acc2);color:var(--acc);border:1px solid var(--acc-b)}
+.main{padding:16px;max-width:680px;margin:0 auto}
+.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row label{font-size:12px;color:var(--muted)}
+.neg{color:var(--red)} .pos{color:var(--green)}
+.sep{display:flex;align-items:center;gap:8px;margin:14px 0 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border)}
+.rbox{border-radius:8px;padding:12px 14px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
+.rbox .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.rbox .val{font-size:18px;font-weight:800}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{border-radius:10px;padding:14px 16px}
+.kpi .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.kpi .val{font-size:19px;font-weight:800}
+.kpi .sub{font-size:10px;color:var(--muted);margin-top:3px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--green-b);color:var(--green);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:300;animation:fi .3s;white-space:nowrap}
+@keyframes fi{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.cat-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:.15s}
+.cat-chip:hover,.cat-chip.sel{background:var(--acc2);border-color:var(--acc-b);color:var(--txt)}
+.prog-bar{height:6px;background:var(--s3);border-radius:4px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:4px;transition:width .6s}
+@media(max-width:500px){.grid2{grid-template-columns:1fr}}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const { useState, useMemo, useEffect, useRef, useCallback } = React;
+const R  = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
+const Rk = v => v>=1000?`R$${(v/1000).toFixed(1)}k`:R(v);
+const n  = v => parseFloat(String(v).replace(',','.'))||0;
+const uid = () => Math.random().toString(36).slice(2,8);
+const expKey = (y,m) => `${y}-${m}`;
+const MONTHS   = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MONTHS_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const today = new Date();
+
+const CATS = [
+  {id:'moradia',    icon:'🏠',label:'Moradia',    kw:['aluguel','condomínio','iptu','financiamento','luz','água','internet','gás']},
+  {id:'alimentacao',icon:'🍔',label:'Alimentação', kw:['ifood','rappi','mercado','supermercado','padaria','restaurante','lanche','delivery']},
+  {id:'transporte', icon:'🚗',label:'Transporte',  kw:['uber','99','combustível','gasolina','ônibus','metrô','estacionamento','carro']},
+  {id:'saude',      icon:'💊',label:'Saúde',       kw:['farmácia','remédio','médico','consulta','exame','plano','academia','dentista']},
+  {id:'educacao',   icon:'🎓',label:'Educação',    kw:['faculdade','curso','escola','livro','udemy','alura','mensalidade']},
+  {id:'lazer',      icon:'🎬',label:'Lazer',       kw:['cinema','teatro','viagem','hotel','passeio','bar','festa','show']},
+  {id:'assinaturas',icon:'📱',label:'Assinaturas', kw:['netflix','spotify','amazon','disney','youtube','apple','globo','prime']},
+  {id:'dividas',    icon:'💳',label:'Dívidas',     kw:['cartão','parcela','empréstimo','financiamento','crédito','banco']},
+  {id:'outros',     icon:'📦',label:'Outros',      kw:[]},
+];
+function detectCat(lbl) {
+  const l=(lbl||'').toLowerCase();
+  for(const c of CATS){if(c.kw.some(k=>l.includes(k)))return c.id;}
+  return 'outros';
+}
+
+// ── Cálculos CLT ─────────────────────────────────────────────────────────────
+function calcINSS(sal) {
+  const s=n(sal); if(s<=0) return 0;
+  const f=[[1412,.075],[2666.68,.09],[4000.03,.12],[7786.02,.14]];
+  let tot=0,prev=0;
+  for(const [teto,aliq] of f){if(s<=prev)break;tot+=(Math.min(s,teto)-prev)*aliq;prev=teto;if(s<=teto)break;}
+  return tot;
+}
+function calcIRPF(base) {
+  const b=n(base); if(b<=0) return 0;
+  const f=[[2259.2,0,0],[2826.65,.075,169.44],[3751.05,.15,381.44],[4664.68,.225,662.77],[Infinity,.275,896]];
+  for(const [teto,aliq,ded] of f){if(b<=teto)return Math.max(0,b*aliq-ded);}
+  return 0;
+}
+
+// ── MonthNav ─────────────────────────────────────────────────────────────────
+function MonthNav({month,year,onPrev,onNext,style={}}) {
+  return React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:10,...style}},
+    React.createElement('button',{onClick:onPrev,style:{background:'var(--s2)',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:8,width:30,height:30,fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'}},'‹'),
+    React.createElement('span',{style:{fontSize:14,fontWeight:700,minWidth:145,textAlign:'center'}},`${MONTHS_F[month]} ${year}`),
+    React.createElement('button',{onClick:onNext,style:{background:'var(--s2)',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:8,width:30,height:30,fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'}},'›')
+  );
+}
+
+// ── Tab: Início ───────────────────────────────────────────────────────────────
+function TabInicio({month,year,onPrev,onNext,salBruto,accounts,expByYM,invByYM,metas,setTab}) {
+  const inss    = calcINSS(salBruto);
+  const irpf    = calcIRPF(n(salBruto)-inss);
+  const liquido = n(salBruto)-inss-irpf;
+  const outra   = accounts.reduce((s,a)=>s+n(a.value),0);
+  const rendaTotal = liquido+outra;
+  const mk = expKey(year,month);
+  const expenses = expByYM[mk]||[];
+  const invests  = invByYM[mk]||[];
+  const totalGastos = expenses.reduce((s,e)=>s+n(e.value),0);
+  const totalInv    = invests.reduce((s,i)=>s+n(i.value),0);
+  const sobra = rendaTotal-totalGastos-totalInv;
+
+  const hist = useMemo(()=>[-3,-2,-1].map(delta=>{
+    let m=month+delta,y=year; while(m<0){m+=12;y--;}
+    const exps=(expByYM[expKey(y,m)]||[]).reduce((s,e)=>s+n(e.value),0);
+    const invs=(invByYM[expKey(y,m)]||[]).reduce((s,i)=>s+n(i.value),0);
+    return {m,y,gastos:exps,inv:invs};
+  }),[month,year,expByYM,invByYM]);
+
+  const histG = hist.filter(h=>h.gastos>0);
+  const avgG  = histG.length ? histG.reduce((s,h)=>s+h.gastos,0)/histG.length : 0;
+  const trendBad = histG.length>=2 && totalGastos>histG[histG.length-1].gastos*1.10;
+  const trendOk  = histG.length>=2 && totalGastos<=histG[histG.length-1].gastos;
+
+  const renda    = Math.max(rendaTotal,1);
+  const savePct  = (sobra+totalInv)/renda;
+  const expRatio = totalGastos/renda;
+  const invRatio = totalInv/renda;
+  const metasDone = metas.filter(m=>n(m.atual)>=n(m.alvo)).length;
+  const metasProg = metas.length ? metasDone/metas.length : -1;
+  const fontes    = (n(salBruto)>0?1:0)+(accounts.filter(a=>n(a.value)>0).length>0?1:0);
+  const prevGastos = avgG>0 ? avgG*(trendBad?1.05:.97) : 0;
+  const prevSobra  = rendaTotal-prevGastos-totalInv;
+
+  // Score avançado (7 componentes, max 100)
+  const s1 = Math.max(0,Math.min(20,Math.round(Math.max(savePct,0)*40)));
+  const s2 = expRatio<=.50?18:expRatio<=.65?13:expRatio<=.80?8:expRatio<1?3:0;
+  const s3 = invRatio>=.20?17:invRatio>=.10?12:invRatio>=.05?6:invRatio>0?2:0;
+  const s4 = metasProg<0?10:Math.round(metasProg*15);
+  const s5 = rendaTotal>0?(trendBad?3:trendOk?15:9):6;
+  const s6 = totalInv>0?(totalInv/Math.max(totalGastos,1)>=.5?10:totalInv/Math.max(totalGastos,1)>=.25?6:3):0;
+  const s7 = fontes>=2?5:fontes===1?3:0;
+  const score = s1+s2+s3+s4+s5+s6+s7;
+
+  const sLabel=score>=85?'Excelente':score>=70?'Muito bom':score>=55?'Bom':score>=40?'Regular':'Atenção';
+  const sColor=score>=85?'#10b981':score>=70?'#818cf8':score>=55?'#38bdf8':score>=40?'#f59e0b':'#f87171';
+  const sBg=score>=85?'rgba(16,185,129,.07)':score>=70?'rgba(129,140,248,.07)':score>=55?'rgba(56,189,248,.07)':score>=40?'rgba(245,158,11,.07)':'rgba(248,113,113,.07)';
+  const sBd=score>=85?'rgba(16,185,129,.22)':score>=70?'rgba(129,140,248,.22)':score>=55?'rgba(56,189,248,.22)':score>=40?'rgba(245,158,11,.22)':'rgba(248,113,113,.22)';
+  const r=52,cx=64,cy=64,circ=2*Math.PI*r,dash=circ*(1-score/100);
+  const bc=r=>r>=0.7?'var(--green)':r>=0.4?'var(--gold)':'var(--red)';
+
+  const comps=[
+    ['Poupança + investimentos', s1,20,`${Math.round(Math.max(savePct,0)*100)}% da renda`],
+    ['Controle de gastos',       s2,18,`${Math.round(expRatio*100)}% da renda em gastos`],
+    ['Taxa de investimento',     s3,17,totalInv>0?`${Math.round(invRatio*100)}% investido`:'Nenhum registrado'],
+    ['Progresso nas metas',      s4,15,metas.length?`${metasDone}/${metas.length} metas atingidas`:'Sem metas (neutro)'],
+    ['Tendência de gastos',      s5,15,trendBad?'Gastos aumentando ↗':trendOk?'Gastos controlados ↘':'Dados insuficientes'],
+    ['Reserva de emergência',    s6,10,totalInv>0?`${(totalInv/Math.max(totalGastos,1)).toFixed(1)}x gastos mensais`:'Configure investimentos'],
+    ['Diversificação de renda',  s7, 5,fontes>=2?`${fontes} fontes ativas`:'Renda única'],
+  ];
+
+  const kpis=[
+    {label:'Salário líquido',   val:R(liquido),      sub:`Bruto: ${R(n(salBruto))}`,                    color:'var(--acc)',  bg:'var(--acc2)',  bd:'var(--acc-b)'},
+    {label:'Renda total',       val:R(rendaTotal),   sub:outra>0?`+${R(outra)} outras fontes`:'Só salário', color:'var(--green)',bg:'var(--green2)',bd:'var(--green-b)'},
+    {label:'Total de gastos',   val:R(totalGastos),  sub:`${Math.round(expRatio*100)}% da renda`,       color:expRatio>.8?'var(--red)':'var(--gold)',bg:'var(--gold2)',bd:'var(--gold-b)'},
+    {label:'Sobra no mês',      val:R(sobra),        sub:prevSobra>0?`Prev próx: ${Rk(prevSobra)}`:'',  color:sobra>=0?'var(--green)':'var(--red)',bg:sobra>=0?'var(--green2)':'var(--red2)',bd:sobra>=0?'var(--green-b)':'var(--red-b)'},
+  ];
+
+  const insights=[];
+  if(rendaTotal===0){
+    insights.push({icon:'💡',text:'Configure seu salário na aba Mensal para ver seus insights personalizados.'});
+  } else {
+    if(expRatio>1) insights.push({icon:'🚨',text:`Gastos (${R(totalGastos)}) acima da renda (${R(rendaTotal)}). Revise urgente.`});
+    else if(expRatio>.8) insights.push({icon:'⚠️',text:`${Math.round(expRatio*100)}% da renda em gastos. Acima do recomendado (70%).`});
+    if(trendBad) insights.push({icon:'📈',text:'Gastos aumentaram mais de 10% em relação ao mês anterior.'});
+    else if(trendOk&&histG.length>=2) insights.push({icon:'✅',text:'Gastos estáveis ou em queda. Continue assim.'});
+    if(invRatio<.10&&rendaTotal>0) insights.push({icon:'💰',text:`Você investe ${Math.round(invRatio*100)}% da renda. O ideal é 10-20%.`});
+    if(sobra>0&&totalInv===0) insights.push({icon:'🎯',text:`Sobram ${R(sobra)} sem destino. Considere investir parte.`});
+    if(prevGastos>0) insights.push({icon:'🔮',text:`Previsão de gastos em ${MONTHS_F[month===11?0:month+1]}: ~${R(prevGastos)}`});
+    if(fontes<2&&rendaTotal>0) insights.push({icon:'🔗',text:'Você depende de uma única fonte de renda. Considere diversificar.'});
+    if(metas.length>0&&metasDone<metas.length){
+      const prox=metas.find(m=>n(m.atual)<n(m.alvo));
+      if(prox) insights.push({icon:'🎯',text:`Meta "${prox.label}": ${Math.round(n(prox.atual)/Math.max(n(prox.alvo),1)*100)}% — falta ${R(Math.max(n(prox.alvo)-n(prox.atual),0))}`});
+    }
+  }
+
+  return React.createElement('div',null,
+    React.createElement('div',{style:{textAlign:'center',padding:'20px 16px 12px'}},
+      React.createElement('div',{style:{marginBottom:16}},React.createElement(MonthNav,{month,year,onPrev,onNext})),
+      React.createElement('h2',{style:{fontSize:22,fontWeight:900,letterSpacing:'-.03em',lineHeight:1.2,marginBottom:6}},
+        'Soberania sobre',React.createElement('br',null),'o seu dinheiro.'),
+      React.createElement('p',{style:{fontSize:13,color:'var(--muted)',fontWeight:500}},'Cada número com propósito. Cada decisão com clareza.')
+    ),
+
+    React.createElement('div',{className:'card',style:{background:sBg,border:`1px solid ${sBd}`,marginBottom:14}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}},
+        React.createElement('div',{style:{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}},
+          React.createElement('svg',{width:120,height:120,viewBox:'0 0 128 128'},
+            React.createElement('circle',{cx,cy,r,fill:'none',stroke:'var(--s3)',strokeWidth:10}),
+            React.createElement('circle',{cx,cy,r,fill:'none',stroke:sColor,strokeWidth:10,
+              strokeDasharray:`${circ}`,strokeDashoffset:`${dash}`,strokeLinecap:'round',
+              style:{transform:'rotate(-90deg)',transformOrigin:'64px 64px',transition:'stroke-dashoffset .7s'}}),
+            React.createElement('text',{x:cx,y:cy-6,textAnchor:'middle',fill:sColor,fontSize:28,fontWeight:800},score),
+            React.createElement('text',{x:cx,y:cy+14,textAnchor:'middle',fill:sColor,fontSize:11,fontWeight:700},sLabel)
+          ),
+          React.createElement('div',{style:{fontSize:10,color:'var(--muted)',textAlign:'center',marginTop:2}},`Score Premium — ${MONTHS_F[month]}`)
+        ),
+        React.createElement('div',{style:{flex:1,minWidth:180}},
+          comps.map(([lbl,pts,max,desc])=>
+            React.createElement('div',{key:lbl,style:{marginBottom:6}},
+              React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:2}},
+                React.createElement('span',{style:{fontSize:10,color:'var(--txt)'}},lbl),
+                React.createElement('span',{style:{fontSize:10,color:bc(pts/max),fontWeight:700}},`${pts}/${max}`)
+              ),
+              React.createElement('div',{style:{height:3,background:'var(--s3)',borderRadius:4}},
+                React.createElement('div',{style:{height:'100%',width:`${pts/max*100}%`,background:bc(pts/max),borderRadius:4,transition:'width .5s'}})
+              ),
+              React.createElement('div',{style:{fontSize:9,color:'var(--muted)',marginTop:1}},desc)
+            )
+          )
+        )
+      )
+    ),
+
+    React.createElement('div',{className:'grid2'},
+      kpis.map(({label,val,sub,color,bg,bd})=>
+        React.createElement('div',{key:label,className:'kpi',style:{background:bg,border:`1px solid ${bd}`}},
+          React.createElement('div',{className:'lbl',style:{color}},label),
+          React.createElement('div',{className:'val',style:{color}},val),
+          sub&&React.createElement('div',{className:'sub'},sub)
+        )
+      )
+    ),
+
+    prevGastos>0&&React.createElement('div',{className:'card',style:{background:'rgba(56,189,248,.06)',border:'1px solid var(--blue-b)',marginBottom:14}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
+        React.createElement('div',{style:{fontSize:24}},'🔮'),
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontWeight:700,fontSize:13,marginBottom:3}},`Previsão — ${MONTHS_F[month===11?0:month+1]}`),
+          React.createElement('div',{style:{fontSize:12,color:'var(--muted)'}},`Gastos ~${R(prevGastos)} · Sobra ~${R(prevSobra)} · Base: ${histG.length} meses`)
+        )
+      )
+    ),
+
+    React.createElement('div',{className:'card',style:{marginBottom:14}},
+      React.createElement('div',{style:{fontWeight:700,fontSize:14,marginBottom:12}},'✨ Insights inteligentes'),
+      insights.map((ins,i)=>
+        React.createElement('div',{key:i,style:{display:'flex',gap:10,padding:'8px 0',borderBottom:i<insights.length-1?'1px solid var(--border)':'none',alignItems:'flex-start'}},
+          React.createElement('span',{style:{fontSize:16,flexShrink:0}},ins.icon),
+          React.createElement('span',{style:{fontSize:12,lineHeight:1.5}},ins.text)
+        )
+      )
+    ),
+
+    React.createElement('div',{style:{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}},
+      [['mensal','💰 Mensal'],['analytics','📊 Analytics'],['metas','🎯 Metas']].map(([k,l])=>
+        React.createElement('button',{key:k,onClick:()=>setTab(k),
+          style:{background:'var(--s2)',border:'1px solid var(--border)',color:'var(--txt)',borderRadius:8,padding:'8px 14px',fontSize:12,fontWeight:600}},l)
+      )
+    )
+  );
+}
+
+// ── Tab: Mensal ───────────────────────────────────────────────────────────────
+function TabMensal({month,year,onPrev,onNext,salBruto,setSalBruto,accounts,setAccounts,expByYM,setExpByYM,invByYM,setInvByYM}) {
+  const [newCat,setNewCat]=useState('outros');
+  const mk=expKey(year,month);
+  const expenses=expByYM[mk]||[];
+  const invests =invByYM[mk]||[];
+  const setExps=u=>setExpByYM(p=>({...p,[mk]:typeof u==='function'?u(p[mk]||[]):u}));
+  const setInvs=u=>setInvByYM(p=>({...p,[mk]:typeof u==='function'?u(p[mk]||[]):u}));
+
+  const inss    = calcINSS(salBruto);
+  const irpf    = calcIRPF(n(salBruto)-inss);
+  const liquido = n(salBruto)-inss-irpf;
+  const outra   = accounts.reduce((s,a)=>s+n(a.value),0);
+  const rendaTotal = liquido+outra;
+  const totalGastos=expenses.reduce((s,e)=>s+n(e.value),0);
+  const totalInv   =invests.reduce((s,i)=>s+n(i.value),0);
+  const sobra=rendaTotal-totalGastos-totalInv;
+
+  const addAcc=()=>{
+    const lbl=(document.getElementById('nacc')?.value||'').trim();
+    const val=document.getElementById('vacc')?.value;
+    if(!lbl) return;
+    setAccounts(p=>[...p,{id:uid(),label:lbl,value:val||'0'}]);
+    ['nacc','vacc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  };
+  const addExp=()=>{
+    const lbl=(document.getElementById('nexp')?.value||'').trim();
+    const val=document.getElementById('vexp')?.value;
+    if(!lbl) return;
+    setExps(p=>[...p,{id:uid(),label:lbl,value:val||'0',cat:newCat||detectCat(lbl)}]);
+    ['nexp','vexp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  };
+  const addInv=()=>{
+    const lbl=(document.getElementById('ninv')?.value||'').trim();
+    const val=document.getElementById('vinv')?.value;
+    if(!lbl) return;
+    setInvs(p=>[...p,{id:uid(),label:lbl,value:val||'0'}]);
+    ['ninv','vinv'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  };
+
+  const rowStyle={display:'flex',gap:8,marginBottom:8};
+  const Btn=(cb,color='var(--acc)')=>React.createElement('button',{onClick:cb,style:{background:color,border:'none',color:color==='var(--acc)'?'#000':'#000',fontWeight:700,borderRadius:6,padding:'7px 14px',fontSize:13,flexShrink:0}},'+');
+  const DelBtn=cb=>React.createElement('button',{onClick:cb,style:{background:'var(--red2)',border:'1px solid var(--red-b)',color:'var(--red)',borderRadius:4,padding:'2px 8px',fontSize:12}},'×');
+
+  return React.createElement('div',null,
+    React.createElement('div',{style:{padding:'12px 0 8px',marginBottom:12}},React.createElement(MonthNav,{month,year,onPrev,onNext})),
+
+    // ── Salário CLT ──────────────────────────────────────────────────────────
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'sep'},'Salário CLT'),
+      React.createElement('input',{type:'number',value:salBruto,onChange:e=>setSalBruto(e.target.value),placeholder:'Salário bruto'}),
+      n(salBruto)>0&&React.createElement('div',{style:{marginTop:10}},
+        React.createElement('div',{className:'row'},React.createElement('label',null,'INSS'),React.createElement('span',{className:'neg'},`-${R(inss)}`)),
+        React.createElement('div',{className:'row'},React.createElement('label',null,'IRPF'),React.createElement('span',{className:'neg'},`-${R(irpf)}`)),
+        React.createElement('div',{className:'rbox',style:{background:'var(--acc2)',border:'1px solid var(--acc-b)',margin:'6px 0 0'}},
+          React.createElement('span',{className:'lbl',style:{color:'var(--acc)'}},'Salário líquido'),
+          React.createElement('span',{className:'val',style:{color:'var(--acc)'}},R(liquido))
+        )
+      )
+    ),
+
+    // ── Outras rendas ────────────────────────────────────────────────────────
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'sep'},'Outras rendas'),
+      React.createElement('p',{style:{fontSize:11,color:'var(--muted)',marginBottom:8}},'Freelance, aluguel, dividendos, renda extra...'),
+      React.createElement('div',{style:rowStyle},
+        React.createElement('input',{id:'nacc',placeholder:'Descrição',onKeyDown:e=>e.key==='Enter'&&addAcc()}),
+        React.createElement('input',{id:'vacc',type:'number',placeholder:'R$',style:{width:90,flexShrink:0}}),
+        Btn(addAcc)
+      ),
+      accounts.map(item=>
+        React.createElement('div',{key:item.id,style:{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)'}},
+          React.createElement('span',{style:{flex:1,fontSize:13}},item.label),
+          React.createElement('input',{type:'number',value:item.value,
+            onChange:ev=>setAccounts(p=>p.map(x=>x.id===item.id?{...x,value:ev.target.value}:x)),
+            style:{width:90,textAlign:'right'}}),
+          DelBtn(()=>setAccounts(p=>p.filter(x=>x.id!==item.id)))
+        )
+      ),
+      accounts.length>0&&React.createElement('div',{className:'rbox',style:{background:'var(--green2)',border:'1px solid var(--green-b)',marginTop:4}},
+        React.createElement('span',{className:'lbl',style:{color:'var(--green)'}},'Renda total'),
+        React.createElement('span',{className:'val',style:{color:'var(--green)'}},R(rendaTotal))
+      )
+    ),
+
+    // ── Gastos pessoais ───────────────────────────────────────────────────────
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'sep'},'Gastos pessoais'),
+      React.createElement('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:10}},
+        CATS.map(c=>React.createElement('span',{key:c.id,className:`cat-chip${newCat===c.id?' sel':''}`,onClick:()=>setNewCat(c.id)},c.icon,' ',c.label))
+      ),
+      React.createElement('div',{style:rowStyle},
+        React.createElement('input',{id:'nexp',placeholder:'Descrição',onKeyDown:e=>e.key==='Enter'&&addExp()}),
+        React.createElement('input',{id:'vexp',type:'number',placeholder:'R$',style:{width:90,flexShrink:0}}),
+        Btn(addExp)
+      ),
+      expenses.map(item=>{
+        const cat=CATS.find(c=>c.id===item.cat)||CATS[8];
+        return React.createElement('div',{key:item.id,style:{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)'}},
+          React.createElement('span',{style:{fontSize:14,flexShrink:0}},cat.icon),
+          React.createElement('span',{style:{flex:1,fontSize:13}},item.label),
+          React.createElement('input',{type:'number',value:item.value,
+            onChange:ev=>setExps(p=>p.map(x=>x.id===item.id?{...x,value:ev.target.value}:x)),
+            style:{width:90,textAlign:'right'}}),
+          DelBtn(()=>setExps(p=>p.filter(x=>x.id!==item.id)))
+        );
+      }),
+      expenses.length>0&&React.createElement('div',{style:{display:'flex',justifyContent:'flex-end',paddingTop:8,fontSize:12,color:'var(--muted)'}},
+        'Total: ',React.createElement('strong',{style:{color:'var(--red)',marginLeft:4}},R(totalGastos))
+      )
+    ),
+
+    // ── Investimentos ─────────────────────────────────────────────────────────
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'sep'},'Investimentos'),
+      React.createElement('div',{style:rowStyle},
+        React.createElement('input',{id:'ninv',placeholder:'Tesouro, ações, FII, CDB...',onKeyDown:e=>e.key==='Enter'&&addInv()}),
+        React.createElement('input',{id:'vinv',type:'number',placeholder:'R$',style:{width:90,flexShrink:0}}),
+        Btn(addInv,'var(--green)')
+      ),
+      invests.map(item=>
+        React.createElement('div',{key:item.id,style:{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)'}},
+          React.createElement('span',{style:{flex:1,fontSize:13}},item.label),
+          React.createElement('input',{type:'number',value:item.value,
+            onChange:ev=>setInvs(p=>p.map(x=>x.id===item.id?{...x,value:ev.target.value}:x)),
+            style:{width:90,textAlign:'right'}}),
+          DelBtn(()=>setInvs(p=>p.filter(x=>x.id!==item.id)))
+        )
+      ),
+      React.createElement('div',{style:{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}},
+        React.createElement('div',{className:'row'},React.createElement('label',null,'Renda total'),React.createElement('span',null,R(rendaTotal))),
+        React.createElement('div',{className:'row'},React.createElement('label',null,'Gastos'),React.createElement('span',{className:'neg'},`-${R(totalGastos)}`)),
+        React.createElement('div',{className:'row'},React.createElement('label',null,'Investimentos'),React.createElement('span',{className:'neg'},`-${R(totalInv)}`)),
+        React.createElement('div',{className:'rbox',style:{background:sobra>=0?'var(--green2)':'var(--red2)',border:`1px solid ${sobra>=0?'var(--green-b)':'var(--red-b)'}`}},
+          React.createElement('span',{className:'lbl',style:{color:sobra>=0?'var(--green)':'var(--red)'}},sobra>=0?'✅ Sobra':'⚠️ Déficit'),
+          React.createElement('span',{className:'val',style:{color:sobra>=0?'var(--green)':'var(--red)'}},R(Math.abs(sobra)))
+        )
+      )
+    )
+  );
+}
+
+// ── Tab: Analytics ────────────────────────────────────────────────────────────
+function TabAnalytics({month,year,salBruto,accounts,expByYM,invByYM}) {
+  const barRef=useRef(null),doRef=useRef(null);
+  const barChart=useRef(null),doChart=useRef(null);
+
+  const inss  = calcINSS(salBruto);
+  const irpf  = calcIRPF(n(salBruto)-inss);
+  const liquido=n(salBruto)-inss-irpf;
+  const outra =accounts.reduce((s,a)=>s+n(a.value),0);
+  const rendaTotal=liquido+outra;
+
+  const months12=useMemo(()=>Array.from({length:12},(_,i)=>{
+    let m=month-11+i,y=year; while(m<0){m+=12;y--;}
+    const mk=expKey(y,m);
+    const gastos =(expByYM[mk]||[]).reduce((s,e)=>s+n(e.value),0);
+    const invests=(invByYM[mk]||[]).reduce((s,i)=>s+n(i.value),0);
+    return {label:MONTHS[m],renda:rendaTotal,gastos,invests,sobra:rendaTotal-gastos-invests};
+  }),[month,year,rendaTotal,expByYM,invByYM]);
+
+  const mk=expKey(year,month);
+  const expenses=expByYM[mk]||[];
+  const invests =invByYM[mk]||[];
+  const totalGastos=expenses.reduce((s,e)=>s+n(e.value),0);
+  const totalInv   =invests.reduce((s,i)=>s+n(i.value),0);
+  const sobra=rendaTotal-totalGastos-totalInv;
+
+  // Breakdown por categoria
+  const byCat={};
+  expenses.forEach(e=>{const c=e.cat||'outros';byCat[c]=(byCat[c]||0)+n(e.value);});
+  const catColors=['#f87171','#fb923c','#fbbf24','#a3e635','#34d399','#38bdf8','#818cf8','#c084fc','#94a3b8'];
+  const doData=Object.entries(byCat).map(([id,val],i)=>{
+    const cat=CATS.find(c=>c.id===id)||CATS[8];
+    return {label:`${cat.icon} ${cat.label}`,value:val,color:catColors[i%catColors.length]};
+  }).filter(x=>x.value>0);
+  if(sobra>0) doData.push({label:'💚 Sobra',value:sobra,color:'#10b981'});
+  if(totalInv>0) doData.push({label:'📈 Investimentos',value:totalInv,color:'#6366f1'});
+
+  useEffect(()=>{
+    if(!barRef.current) return;
+    if(barChart.current) barChart.current.destroy();
+    barChart.current=new Chart(barRef.current.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:months12.map(m=>m.label),
+        datasets:[
+          {label:'Renda total',    data:months12.map(m=>m.renda),   backgroundColor:'rgba(129,140,248,.3)',borderColor:'#818cf8',borderWidth:1,borderRadius:3},
+          {label:'Gastos pessoais',data:months12.map(m=>m.gastos),  backgroundColor:'rgba(248,113,113,.3)',borderColor:'#f87171',borderWidth:1,borderRadius:3},
+          {label:'Investimentos',  data:months12.map(m=>m.invests), backgroundColor:'rgba(16,185,129,.25)',borderColor:'#10b981',borderWidth:1,borderRadius:3},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},
+        scales:{x:{ticks:{color:'#64748b'},grid:{color:'rgba(26,37,64,.8)'}},
+          y:{ticks:{color:'#64748b',callback:v=>v>=1000?`${(v/1000).toFixed(0)}k`:v},grid:{color:'rgba(26,37,64,.8)'}}}}
+    });
+    return ()=>barChart.current?.destroy();
+  },[months12]);
+
+  useEffect(()=>{
+    if(!doRef.current||doData.length===0) return;
+    if(doChart.current) doChart.current.destroy();
+    doChart.current=new Chart(doRef.current.getContext('2d'),{
+      type:'doughnut',
+      data:{labels:doData.map(x=>x.label),datasets:[{data:doData.map(x=>x.value),backgroundColor:doData.map(x=>x.color),borderWidth:0,hoverOffset:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:10},boxWidth:10,padding:8}}}}
+    });
+    return ()=>doChart.current?.destroy();
+  },[doData]);
+
+  // Visão anual
+  const totalAnualRenda  =months12.reduce((s,m)=>s+m.renda,0);
+  const totalAnualGastos =months12.reduce((s,m)=>s+m.gastos,0);
+  const totalAnualInv    =months12.reduce((s,m)=>s+m.invests,0);
+  const totalAnualSobra  =months12.reduce((s,m)=>s+Math.max(m.sobra,0),0);
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'card',style:{background:'rgba(129,140,248,.05)',border:'1px solid var(--acc-b)',marginBottom:12}},
+      React.createElement('div',{style:{fontWeight:700,fontSize:14,marginBottom:10}},'📅 Visão anual (últimos 12 meses)'),
+      React.createElement('div',{className:'grid2'},
+        [{label:'Renda total',val:R(totalAnualRenda),color:'var(--acc)'},{label:'Gastos',val:R(totalAnualGastos),color:'var(--red)'},
+         {label:'Investido',val:R(totalAnualInv),color:'var(--green)'},{label:'Sobra acumulada',val:R(totalAnualSobra),color:'var(--blue)'}
+        ].map(({label,val,color})=>
+          React.createElement('div',{key:label,style:{textAlign:'center',padding:'10px',background:'var(--s2)',borderRadius:8}},
+            React.createElement('div',{style:{fontSize:10,color:'var(--muted)',marginBottom:4}},label),
+            React.createElement('div',{style:{fontSize:16,fontWeight:800,color}},val)
+          )
+        )
+      )
+    ),
+
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{style:{fontWeight:700,fontSize:14,marginBottom:12}},'📊 Renda × Gastos × Investimentos (12 meses)'),
+      React.createElement('div',{style:{height:220}},React.createElement('canvas',{ref:barRef}))
+    ),
+
+    doData.length>0&&React.createElement('div',{className:'card'},
+      React.createElement('div',{style:{fontWeight:700,fontSize:14,marginBottom:12}},`🍕 Destino da renda — ${MONTHS_F[month]}`),
+      React.createElement('div',{style:{height:200}},React.createElement('canvas',{ref:doRef}))
+    )
+  );
+}
+
+// ── Tab: Metas ────────────────────────────────────────────────────────────────
+function TabMetas({metas,setMetas,month,year,salBruto,accounts,expByYM,invByYM}) {
+  const inss    = calcINSS(salBruto);
+  const irpf    = calcIRPF(n(salBruto)-inss);
+  const liquido = n(salBruto)-inss-irpf;
+  const outra   = accounts.reduce((s,a)=>s+n(a.value),0);
+  const rendaTotal = liquido+outra;
+  const mk=expKey(year,month);
+  const totalGastos=(expByYM[mk]||[]).reduce((s,e)=>s+n(e.value),0);
+  const totalInv   =(invByYM[mk]||[]).reduce((s,i)=>s+n(i.value),0);
+  const sobra=rendaTotal-totalGastos-totalInv;
+
+  const addMeta=()=>{
+    const label=(document.getElementById('nmet')?.value||'').trim();
+    const alvo=document.getElementById('vmet')?.value;
+    const atual=document.getElementById('amet')?.value;
+    if(!label) return;
+    setMetas(p=>[...p,{id:uid(),label,alvo:alvo||'0',atual:atual||'0'}]);
+    ['nmet','vmet','amet'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  };
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{style:{fontWeight:700,fontSize:14,marginBottom:12}},'🎯 Metas financeiras'),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}},
+        React.createElement('input',{id:'nmet',placeholder:'Nome da meta',style:{gridColumn:'1/-1'}}),
+        React.createElement('input',{id:'vmet',type:'number',placeholder:'Meta (R$)'}),
+        React.createElement('input',{id:'amet',type:'number',placeholder:'Atual (R$)'})
+      ),
+      React.createElement('button',{onClick:addMeta,
+        style:{background:'var(--acc)',border:'none',color:'#000',fontWeight:700,borderRadius:6,padding:'8px 20px',fontSize:13,marginBottom:12,width:'100%'}},
+        '+ Adicionar meta'
+      ),
+      metas.length===0&&React.createElement('p',{style:{fontSize:12,color:'var(--muted)',textAlign:'center',padding:'20px 0'}},
+        'Nenhuma meta ainda. Que tal começar pela reserva de emergência?'),
+      metas.map(m=>{
+        const prog=Math.min(n(m.atual)/Math.max(n(m.alvo),1),1);
+        const falta=Math.max(n(m.alvo)-n(m.atual),0);
+        const meses=sobra>0?Math.ceil(falta/sobra):'∞';
+        const color=prog>=1?'var(--green)':prog>=.5?'var(--acc)':'var(--gold)';
+        return React.createElement('div',{key:m.id,className:'card',style:{marginBottom:8,padding:14}},
+          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+            React.createElement('span',{style:{fontWeight:700,fontSize:14}},m.label),
+            React.createElement('button',{onClick:()=>setMetas(p=>p.filter(x=>x.id!==m.id)),
+              style:{background:'var(--red2)',border:'1px solid var(--red-b)',color:'var(--red)',borderRadius:4,padding:'2px 8px',fontSize:11}},'Remover')
+          ),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}},
+            React.createElement('div',null,
+              React.createElement('label',{style:{fontSize:10,color:'var(--muted)',display:'block',marginBottom:3}},'Valor atual'),
+              React.createElement('input',{type:'number',value:m.atual,onChange:e=>setMetas(p=>p.map(x=>x.id===m.id?{...x,atual:e.target.value}:x))})
+            ),
+            React.createElement('div',null,
+              React.createElement('label',{style:{fontSize:10,color:'var(--muted)',display:'block',marginBottom:3}},'Meta'),
+              React.createElement('input',{type:'number',value:m.alvo,onChange:e=>setMetas(p=>p.map(x=>x.id===m.id?{...x,alvo:e.target.value}:x))})
+            )
+          ),
+          React.createElement('div',{className:'prog-bar'},
+            React.createElement('div',{className:'prog-fill',style:{width:`${prog*100}%`,background:color}})
+          ),
+          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--muted)'}},
+            React.createElement('span',null,`${Math.round(prog*100)}% concluído`),
+            prog<1
+              ?React.createElement('span',null,`Falta ${R(falta)} · ~${meses}${typeof meses==='number'?' meses':''}`)
+              :React.createElement('span',{style:{color:'var(--green)',fontWeight:700}},'🎉 Meta atingida!')
+          )
+        );
+      })
+    )
+  );
+}
+
+// ── FloatingChat ──────────────────────────────────────────────────────────────
+function FloatingChat({month,year,salBruto,accounts,expByYM,invByYM,metas}) {
+  const [open,setOpen]=useState(false);
+  const [msgs,setMsgs]=useState([]);
+  const [input,setInput]=useState('');
+  const [loading,setLoading]=useState(false);
+  const endRef=useRef(null);
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[msgs]);
+
+  const buildCtx=()=>{
+    const inss=calcINSS(salBruto),irpf=calcIRPF(n(salBruto)-inss),liq=n(salBruto)-inss-irpf;
+    const outra=accounts.reduce((s,a)=>s+n(a.value),0);
+    const renda=liq+outra;
+    const mk=expKey(year,month);
+    const gastos=(expByYM[mk]||[]).reduce((s,e)=>s+n(e.value),0);
+    const inv   =(invByYM[mk]||[]).reduce((s,i)=>s+n(i.value),0);
+    const byCat={};
+    (expByYM[mk]||[]).forEach(e=>{const c=e.cat||'outros';byCat[c]=(byCat[c]||0)+n(e.value);});
+    const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>{const c=CATS.find(x=>x.id===k);return `${c?.label||k}: ${R(v)}`;}).join(', ');
+    const metasStr=metas.map(m=>`${m.label}: ${Math.round(n(m.atual)/Math.max(n(m.alvo),1)*100)}%`).join(', ')||'nenhuma';
+    return `Você é um assistente financeiro pessoal inteligente. Responda em português, seja direto e use os dados reais.
+Mês: ${MONTHS_F[month]} ${year}
+Salário bruto: ${R(n(salBruto))} → líquido: ${R(liq)} (INSS ${R(inss)} + IRPF ${R(irpf)})
+Outras rendas: ${R(outra)} | Renda total: ${R(renda)}
+Gastos: ${R(gastos)} | Investimentos: ${R(inv)} | Sobra: ${R(renda-gastos-inv)}
+Top categorias: ${top||'sem dados'}
+Metas: ${metasStr}`;
+  };
+
+  const send=async(text)=>{
+    const msg=(text||input).trim(); if(!msg||loading) return;
+    setInput('');
+    const next=[...msgs,{role:'user',content:msg}];
+    setMsgs(next); setLoading(true);
+    try {
+      const res=await fetch('https://text.pollinations.ai/',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({messages:next.map(m=>({role:m.role,content:m.content})),model:'openai',system:buildCtx(),seed:Math.floor(Math.random()*9999)})});
+      const reply=await res.text();
+      setMsgs(m=>[...m,{role:'assistant',content:reply}]);
+    } catch(e){setMsgs(m=>[...m,{role:'assistant',content:'Erro ao conectar. Tente novamente.'}]);}
+    setLoading(false);
+  };
+
+  const sugestoes=['Como está minha saúde financeira?','Onde estou gastando mais?','Como posso economizar mais?','Quando vou atingir minhas metas?','Como investir melhor minha sobra?'];
+
+  return React.createElement(React.Fragment,null,
+    React.createElement('button',{onClick:()=>setOpen(o=>!o),
+      style:{position:'fixed',bottom:22,right:22,width:52,height:52,borderRadius:'50%',background:'linear-gradient(135deg,#818cf8,#6366f1)',border:'none',fontSize:22,cursor:'pointer',boxShadow:'0 4px 20px rgba(99,102,241,.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}},
+      open?'✕':'✨'
+    ),
+    open&&React.createElement('div',{style:{position:'fixed',bottom:86,right:16,width:340,maxHeight:490,background:'var(--s1)',border:'1px solid var(--border)',borderRadius:16,display:'flex',flexDirection:'column',zIndex:200,boxShadow:'0 8px 40px rgba(0,0,0,.7)',overflow:'hidden'}},
+      React.createElement('div',{style:{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,background:'linear-gradient(135deg,rgba(129,140,248,.08),transparent)'}},
+        React.createElement('div',{style:{fontSize:20}},'✨'),
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontWeight:700,fontSize:13}},'Sovra IA'),
+          React.createElement('div',{style:{fontSize:11,color:'var(--green)'}},'● Online — análise em tempo real')
+        )
+      ),
+      React.createElement('div',{style:{flex:1,overflowY:'auto',padding:12,display:'flex',flexDirection:'column',gap:8}},
+        msgs.length===0&&React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:12,color:'var(--muted)',textAlign:'center',marginBottom:12}},'Pergunte sobre suas finanças'),
+          sugestoes.map(s=>React.createElement('button',{key:s,onClick:()=>send(s),
+            style:{display:'block',width:'100%',background:'var(--s2)',border:'1px solid var(--border)',color:'var(--txt)',borderRadius:8,padding:'8px 12px',fontSize:12,textAlign:'left',cursor:'pointer',marginBottom:6}},s))
+        ),
+        msgs.map((m,i)=>React.createElement('div',{key:i,style:{maxWidth:'85%',padding:'8px 12px',borderRadius:12,fontSize:12,lineHeight:1.5,
+          alignSelf:m.role==='user'?'flex-end':'flex-start',
+          background:m.role==='user'?'var(--acc)':'var(--s2)',
+          color:m.role==='user'?'#fff':'var(--txt)',
+          borderBottomRightRadius:m.role==='user'?4:12,borderBottomLeftRadius:m.role==='user'?12:4}},m.content)),
+        loading&&React.createElement('div',{style:{alignSelf:'flex-start',background:'var(--s2)',borderRadius:12,padding:'8px 12px',fontSize:12,color:'var(--muted)'}},'...'),
+        React.createElement('div',{ref:endRef})
+      ),
+      React.createElement('div',{style:{padding:'10px 12px',borderTop:'1px solid var(--border)',display:'flex',gap:8}},
+        React.createElement('input',{value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>e.key==='Enter'&&send(),
+          placeholder:'Pergunte algo...',style:{flex:1,fontSize:12,padding:'7px 10px',borderRadius:8}}),
+        React.createElement('button',{onClick:()=>send(),style:{background:'var(--acc)',border:'none',color:'#fff',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:700}},'→')
+      )
+    )
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,setTab]             = useState('inicio');
+  const [month,setMonth]         = useState(today.getMonth());
+  const [year,setYear]           = useState(today.getFullYear());
+  const [salBruto,setSalBruto]   = useState('');
+  const [accounts,setAccounts]   = useState([]);
+  const [expByYM,setExpByYM]     = useState({});
+  const [invByYM,setInvByYM]     = useState({});
+  const [metas,setMetas]         = useState([]);
+  const [toast,setToast]         = useState('');
+
+  useEffect(()=>{
+    try {
+      const d=JSON.parse(localStorage.getItem('sovra_premium_v1')||'{}');
+      if(d.salBruto!==undefined) setSalBruto(d.salBruto);
+      if(d.accounts) setAccounts(d.accounts);
+      if(d.expByYM)  setExpByYM(d.expByYM);
+      if(d.invByYM)  setInvByYM(d.invByYM);
+      if(d.metas)    setMetas(d.metas);
+    } catch(e){}
+  },[]);
+
+  const skip=useRef(true);
+  useEffect(()=>{
+    if(skip.current){skip.current=false;return;}
+    try{localStorage.setItem('sovra_premium_v1',JSON.stringify({salBruto,accounts,expByYM,invByYM,metas}));}catch(e){}
+  },[salBruto,accounts,expByYM,invByYM,metas]);
+
+  const onPrev=useCallback(()=>{if(month===0){setYear(y=>y-1);setMonth(11);}else setMonth(m=>m-1);},[month]);
+  const onNext=useCallback(()=>{if(month===11){setYear(y=>y+1);setMonth(0);}else setMonth(m=>m+1);},[month]);
+
+  const doExport=()=>{
+    const blob=new Blob([JSON.stringify({salBruto,accounts,expByYM,invByYM,metas},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sovra_premium_backup.json'; a.click();
+    setToast('✅ Backup exportado!'); setTimeout(()=>setToast(''),3000);
+  };
+
+  const TABS=[{id:'inicio',label:'🏠 Início'},{id:'mensal',label:'💰 Mensal'},{id:'analytics',label:'📊 Analytics'},{id:'metas',label:'🎯 Metas'}];
+  const p={month,year,onPrev,onNext,salBruto,setSalBruto,accounts,setAccounts,expByYM,setExpByYM,invByYM,setInvByYM,metas,setMetas,setTab};
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'top-bar'},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:18,fontWeight:900,letterSpacing:'-.04em',lineHeight:1}},'Sovra'),
+          React.createElement('div',{style:{fontSize:9,color:'var(--muted)',letterSpacing:'.04em'}},'by Sovra Labs')
+        ),
+        React.createElement('span',{style:{background:'linear-gradient(135deg,#818cf8,#6366f1)',color:'#fff',borderRadius:4,padding:'2px 8px',fontSize:10,fontWeight:800,letterSpacing:'.05em'}},'PREMIUM')
+      ),
+      React.createElement('button',{onClick:doExport,
+        style:{background:'var(--s2)',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:6,padding:'6px 12px',fontSize:11,fontWeight:600}},'⬇ Export')
+    ),
+    React.createElement('div',{className:'tabs-wrap'},
+      React.createElement('div',{className:'tabs'},
+        TABS.map(t=>React.createElement('button',{key:t.id,className:`tab${tab===t.id?' active':''}`,onClick:()=>setTab(t.id)},t.label))
+      )
+    ),
+    React.createElement('div',{className:'main'},
+      tab==='inicio'    && React.createElement(TabInicio,    {...p}),
+      tab==='mensal'    && React.createElement(TabMensal,    {...p}),
+      tab==='analytics' && React.createElement(TabAnalytics, {...p}),
+      tab==='metas'     && React.createElement(TabMetas,     {...p}),
+    ),
+    React.createElement(FloatingChat,{month,year,salBruto,accounts,expByYM,invByYM,metas}),
+    toast&&React.createElement('div',{className:'toast'},toast)
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
