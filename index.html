@@ -453,6 +453,8 @@ function ImportCSVDrawer({ onImport, onClose }) {
   const [loading, setLoading] = useState(false);
   const fileRef               = useRef(null);
 
+  const [colInfo, setColInfo] = useState('');
+
   const splitLine = l => {
     const out = []; let cur = '', inQ = false;
     for (const ch of l) {
@@ -464,6 +466,32 @@ function ImportCSVDrawer({ onImport, onClose }) {
     return out;
   };
 
+  // Limpa descrições brutas de banco para nomes legíveis
+  const cleanDesc = raw => {
+    if (!raw) return '';
+    let s = raw.trim();
+    // Remove códigos numéricos longos no final (ex: "UBER *TRIP 1234567890")
+    s = s.replace(/\s+\d{6,}$/,'').replace(/\s+\*\w+\s+\d+$/,'');
+    // Limpa asteriscos de separação (IFOOD*PEDIDO → IFOOD PEDIDO)
+    s = s.replace(/\*/g,' ');
+    // Remove prefixos de operação bancária
+    s = s.replace(/^(PIX ENVIADO|PIX RECEBIDO|PIX AGENDADO|TED ENVIADO|TED RECEBIDO|DOC ENVIADO|DOC RECEBIDO|PAGAMENTO PIX|PAGTO PIX|TRANSF PIX|COMPRA DEBITO|COMPRA CREDITO|DEBITO AUTOMATICO|DEB AUT|PAGAMENTO|PAGTO)\s+/i,'');
+    // Capitaliza: "UBER VIAGENS" → "Uber Viagens"
+    s = s.replace(/\b\w+/g, w => {
+      const upper = ['cpf','cnpj','pix','ted','doc','cdb','lci','lca','fii','bb','spc'];
+      if (upper.includes(w.toLowerCase())) return w.toUpperCase();
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    });
+    // Corrige marcas conhecidas
+    const brands = {
+      'Ifood':'iFood','Mcdonalds':"McDonald's",'Uber ':'Uber ','Nubank':'Nubank',
+      'Spotify':'Spotify','Netflix':'Netflix','Amazon':'Amazon','Disney':'Disney+',
+      'Smartfit':'SmartFit','Bradesco':'Bradesco','Itau':'Itaú','Santander':'Santander',
+    };
+    for (const [k,v] of Object.entries(brands)) { if (s.startsWith(k)) { s = v + s.slice(k.length); break; } }
+    return s.trim();
+  };
+
   const parseCSV = text => {
     const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
     if (lines.length < 2) return [];
@@ -471,65 +499,68 @@ function ImportCSVDrawer({ onImport, onClose }) {
     const ncols = raw[0].length;
     if (ncols < 2) return [];
 
-    // Normalize header for matching
     const header = raw[0].map(h => norm(h));
-
     const idx = (...kws) => header.findIndex(h => kws.some(k => h.includes(norm(k))));
 
-    // Find description column — broadest possible set of names
+    // Detect description column
     let descI = idx('descricao','historico','lancamento','estabelecimento',
-                     'favorecido','beneficiario','nome transacao','memo',
-                     'detalhe','complemento','observacao','narrat','particip',
-                     'comercio','empresa','titulo');
-
-    // Fallback: biggest average text length column (most likely the description)
+                    'favorecido','beneficiario','nome','memo','detalhe',
+                    'complemento','observacao','comercio','empresa','titulo');
+    // Fallback: column with most non-numeric text (excludes date and value columns)
     if (descI < 0) {
-      const avgs = Array.from({length:ncols},(_,ci)=>{
-        const vals = raw.slice(1).map(r=>(r[ci]||'').replace(/\d/g,'').trim().length);
-        return vals.reduce((s,v)=>s+v,0)/(vals.length||1);
+      const scores = Array.from({length:ncols}, (_, ci) => {
+        const letters = raw.slice(1).map(r => (r[ci]||'').replace(/[\d\/\.\,\-\s]/g,'').length);
+        return letters.reduce((s,v)=>s+v,0);
       });
-      descI = avgs.indexOf(Math.max(...avgs));
+      descI = scores.indexOf(Math.max(...scores));
     }
 
-    // Find value column
-    let valI = idx('valor','value','amount','debito','debit','credito','credit','montante','vlr','quantia','total');
-    // Fallback: find first column that looks numeric across most rows
+    // Detect value column — prefer debit/expense columns
+    let valI = idx('debito','debit','saida','gasto','despesa');
+    if (valI < 0) valI = idx('valor','value','amount','montante','vlr','quantia');
+    if (valI < 0) valI = idx('credito','credit','entrada','receita');
+    // Fallback: column with most positive numbers
     if (valI < 0) {
-      for (let ci=0; ci<ncols; ci++) {
-        const numCount = raw.slice(1).filter(r => {
-          const v = (r[ci]||'').replace(/[R$\s.]/g,'').replace(',','.');
+      for (let ci = 0; ci < ncols; ci++) {
+        if (ci === descI) continue;
+        const nums = raw.slice(1).filter(r => {
+          const v = (r[ci]||'').replace(/[R$\s\.]/g,'').replace(',','.');
           return !isNaN(parseFloat(v)) && parseFloat(v) > 0;
         }).length;
-        if (numCount > raw.length * 0.5) { valI = ci; break; }
+        if (nums > raw.length * 0.4) { valI = ci; break; }
       }
     }
-    if (valI < 0) { setErr('Não encontrei coluna de valor. Verifique se o arquivo é um extrato válido.'); return []; }
+    if (valI < 0) { setErr('Coluna de valor não encontrada. Verifique se é um extrato bancário válido.'); return []; }
 
-    // Find date column
+    // Detect date column
     const dateI = idx('data','date','dt','vencimento','competencia','periodo');
 
+    // Log detected columns for user feedback
+    const hdr = raw[0];
+    setColInfo('Detectado: ' + (hdr[descI]||'col '+(descI+1)) + ' → descrição | ' + (hdr[valI]||'col '+(valI+1)) + ' → valor');
+
     return raw.slice(1).map((cols, i) => {
-      const rawVal = (cols[valI] || '').replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
-      const val = Math.abs(parseFloat(rawVal) || 0);
-      const desc = ((cols[descI] || '').trim()) || ('Item ' + (i+1));
+      const rawVal = (cols[valI]||'').replace(/[R$\s]/g,'').replace(/\.(?=\d{3})/g,'').replace(',','.');
+      const val = Math.abs(parseFloat(rawVal)||0);
+      if (val <= 0) return null;
+      const rawDesc = (cols[descI]||'').trim();
+      const desc = cleanDesc(rawDesc) || ('Item '+(i+1));
       const date = dateI >= 0 ? (cols[dateI]||'').trim() : '';
-      return { id: uid(), label: desc, value: String(val), cat: detectCat(desc), date };
-    }).filter(r => parseFloat(r.value) > 0);
+      return { id:uid(), label:desc, value:String(val), cat:detectCat(rawDesc+' '+desc), date };
+    }).filter(Boolean);
   };
 
   const handleFile = e => {
-    setErr(''); setRows([]); setChecked({});
+    setErr(''); setRows([]); setChecked({}); setColInfo('');
     const file = e.target.files[0];
     if (!file) return;
     setLoading(true);
-
-    // Try UTF-8 first; if header detection fails, retry with latin1 (ISO-8859-1)
     const tryParse = (encoding, onFail) => {
       const reader = new FileReader();
       reader.onload = ev => {
         const parsed = parseCSV(ev.target.result);
         if (!parsed.length && onFail) { onFail(); return; }
-        if (!parsed.length) { setErr('Nenhuma linha com valor encontrada. Verifique o arquivo.'); setLoading(false); return; }
+        if (!parsed.length) { setErr('Nenhuma linha com valor > 0 encontrada. Verifique o arquivo.'); setLoading(false); return; }
         setRows(parsed);
         const all = {};
         parsed.forEach(r => { all[r.id] = true; });
@@ -538,7 +569,6 @@ function ImportCSVDrawer({ onImport, onClose }) {
       };
       reader.readAsText(file, encoding);
     };
-
     tryParse('UTF-8', () => tryParse('ISO-8859-1', null));
   };
 
@@ -582,6 +612,8 @@ function ImportCSVDrawer({ onImport, onClose }) {
               err && React.createElement('div', { style:{ marginTop:12, background:'rgba(248,113,113,.1)', border:'1px solid rgba(248,113,113,.3)', borderRadius:8, padding:'10px 12px', fontSize:13, color:'var(--red)' } }, '⚠️ ' + err)
             )
           : React.createElement('div', null,
+              // Column detection info
+              colInfo && React.createElement('div', { style:{ background:'rgba(129,140,248,.1)', border:'1px solid rgba(129,140,248,.2)', borderRadius:8, padding:'7px 12px', fontSize:11, color:'var(--acc)', marginBottom:10 } }, '🔍 ' + colInfo),
               // Summary bar
               React.createElement('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 } },
                 React.createElement('span', { style:{ fontSize:13, color:'var(--muted)' } }, selCount + ' de ' + rows.length + ' selecionados'),
