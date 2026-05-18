@@ -515,14 +515,15 @@ function ImportCSVDrawer({ onImport, onClose }) {
       descI = scores.indexOf(Math.max(...scores));
     }
 
-    // Detect value column — prefer debit/expense columns
+    // Detect value column — prefer debit/expense, exclude saldo
+    const saldoI = idx('saldo','balance');
     let valI = idx('debito','debit','saida','gasto','despesa');
     if (valI < 0) valI = idx('valor','value','amount','montante','vlr','quantia');
     if (valI < 0) valI = idx('credito','credit','entrada','receita');
-    // Fallback: column with most positive numbers
+    // Fallback: first numeric column that isn't description or saldo
     if (valI < 0) {
       for (let ci = 0; ci < ncols; ci++) {
-        if (ci === descI) continue;
+        if (ci === descI || ci === saldoI) continue;
         const nums = raw.slice(1).filter(r => {
           const v = (r[ci]||'').replace(/[R$\s\.]/g,'').replace(',','.');
           return !isNaN(parseFloat(v)) && parseFloat(v) > 0;
@@ -539,9 +540,26 @@ function ImportCSVDrawer({ onImport, onClose }) {
     const hdr = raw[0];
     setColInfo('Detectado: ' + (hdr[descI]||'col '+(descI+1)) + ' → descrição | ' + (hdr[valI]||'col '+(valI+1)) + ' → valor');
 
+    // Detect if file uses BR format (comma decimal) or US format (dot decimal)
+    // by sampling value column across rows
+    const sampleVals = raw.slice(1,6).map(r=>(r[valI]||'').replace(/[R$\s]/g,''));
+    const brFormat = sampleVals.some(v => v.includes(','));
+
+    const parseAmt = raw => {
+      let s = (raw||'').replace(/[R$\s\(\)]/g,'').replace(/^-/,'').trim();
+      if (!s) return 0;
+      if (brFormat) {
+        // BR: 1.234,56 or 1234,56
+        s = s.replace(/\./g,'').replace(',','.');
+      } else {
+        // US: 1,234.56 or 1234.56
+        s = s.replace(/,/g,'');
+      }
+      return Math.abs(parseFloat(s)||0);
+    };
+
     return raw.slice(1).map((cols, i) => {
-      const rawVal = (cols[valI]||'').replace(/[R$\s]/g,'').replace(/\.(?=\d{3})/g,'').replace(',','.');
-      const val = Math.abs(parseFloat(rawVal)||0);
+      const val = parseAmt(cols[valI]);
       if (val <= 0) return null;
       const rawDesc = (cols[descI]||'').trim();
       const desc = cleanDesc(rawDesc) || ('Item '+(i+1));
